@@ -5,6 +5,7 @@ on:
     paths:
       - MyProjectLauncher.zip
       - .github/workflows/build.yml
+      - "*.png"
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,6 +23,39 @@ jobs:
       - name: Point launcher to launcher.json in this repo
         run: |
           sed -i "s|http://10.0.2.2:8080/launcher.json|https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/launcher.json|" MyProjectLauncher/app/src/main/java/com/myproject/launcher/AppConfig.kt
+      - name: Apply logo and app name
+        run: |
+          LOGO=$(ls *.png | head -n1)
+          [ -n "$LOGO" ] || { echo "Нет PNG-файла с логотипом в корне репозитория"; exit 1; }
+          RES=MyProjectLauncher/app/src/main/res
+          mkdir -p $RES/drawable-nodpi $RES/mipmap-xxxhdpi $RES/mipmap-anydpi-v26
+          cp "$LOGO" $RES/drawable-nodpi/amazor_logo.png
+          cp "$LOGO" $RES/mipmap-xxxhdpi/ic_launcher.png
+          rm -f $RES/drawable/ic_launcher.xml
+          cat > $RES/drawable/ic_launcher_foreground.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <inset xmlns:android="http://schemas.android.com/apk/res/android"
+              android:drawable="@drawable/amazor_logo"
+              android:insetLeft="16.67%"
+              android:insetTop="16.67%"
+              android:insetRight="16.67%"
+              android:insetBottom="16.67%" />
+          XML
+          cat > $RES/mipmap-anydpi-v26/ic_launcher.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@color/ic_launcher_background" />
+              <foreground android:drawable="@drawable/ic_launcher_foreground" />
+          </adaptive-icon>
+          XML
+          cat > $RES/values/ic_launcher_background.xml <<'XML'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="ic_launcher_background">#000000</color>
+          </resources>
+          XML
+          sed -i 's|@drawable/ic_launcher|@mipmap/ic_launcher|' MyProjectLauncher/app/src/main/AndroidManifest.xml
+          sed -i -e 's|>My Project Launcher<|>Amazor RP<|' -e 's|>MY PROJECT<|>AMAZOR RP<|' $RES/values/strings.xml
       - name: Build debug APK
         working-directory: MyProjectLauncher
         run: gradle assembleDebug --no-daemon
