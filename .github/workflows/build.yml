@@ -6,6 +6,8 @@ on:
       - MyProjectLauncher.zip
       - .github/workflows/build.yml
       - "*.png"
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -63,3 +65,11 @@ jobs:
         with:
           name: launcher-debug-apk
           path: MyProjectLauncher/app/build/outputs/apk/debug/*.apk
+      - name: Publish APK to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          cp MyProjectLauncher/app/build/outputs/apk/debug/*.apk AmazorRP.apk
+          gh release delete latest --cleanup-tag --yes || true
+          gh release create latest AmazorRP.apk --title "Amazor RP" --notes "Последняя сборка"
