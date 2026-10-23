@@ -24,6 +24,13 @@ jobs:
       - name: Point launcher to launcher.json in this repo
         run: |
           sed -i "s|http://10.0.2.2:8080/launcher.json|https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/launcher.json|" AmazorLauncher/app/src/main/java/com/myproject/launcher/AppConfig.kt
+      - name: Set client package from client.apk
+        run: |
+          AAPT=$(ls $ANDROID_HOME/build-tools/*/aapt | sort -V | tail -1)
+          PKG=$($AAPT dump badging updates/client.apk | sed -n "s/^package: name='\([^']*\)'.*/\1/p")
+          echo "Client package: $PKG"
+          test -n "$PKG"
+          sed -i "s|com.example.crmpclient|$PKG|" AmazorLauncher/app/src/main/java/com/myproject/launcher/AppConfig.kt
       - name: Build debug APK
         working-directory: AmazorLauncher
         run: gradle assembleDebug --no-daemon
